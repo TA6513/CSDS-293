@@ -82,7 +82,7 @@ public class RingsTest {
 
     @Test
     public void testPolynomialAddition() {
-        List<Integer> coefficients1 = Arrays.asList(1, 2, 3);
+        List<Integer> coefficients1 = Arrays.asList(1, 2);
         List<Integer> coefficients2 = Arrays.asList(4, 5, 6);
 
         Polynomial<Integer> polynomial1 = Polynomial.from(coefficients1);
@@ -90,7 +90,21 @@ public class RingsTest {
 
         Polynomial<Integer> result = polynomial1.plus(polynomial2, new IntegerRing());
 
-        List<Integer> expectedCoefficients = Arrays.asList(5, 7, 9);
+        List<Integer> expectedCoefficients = Arrays.asList(5, 7, 6);
+        assertEquals(expectedCoefficients, result.getCoefficients());
+    }
+
+    @Test
+    public void testPolynomialAdditionWithShorterPolynomialLast() {
+        List<Integer> coefficients1 = Arrays.asList(4, 5, 6);
+        List<Integer> coefficients2 = Arrays.asList(1,2);
+
+        Polynomial<Integer> polynomial1 = Polynomial.from(coefficients1);
+        Polynomial<Integer> polynomial2 = Polynomial.from(coefficients2);
+
+        Polynomial<Integer> result = polynomial2.plus(polynomial1, new IntegerRing());
+
+        List<Integer> expectedCoefficients = Arrays.asList(5, 7, 6);
         assertEquals(expectedCoefficients, result.getCoefficients());
     }
 
@@ -103,6 +117,20 @@ public class RingsTest {
         Polynomial<Integer> polynomial2 = Polynomial.from(coefficients2);
 
         Polynomial<Integer> result = polynomial1.times(polynomial2, new IntegerRing());
+
+        List<Integer> expectedCoefficients = Arrays.asList(4, 13, 16, 12);
+        assertEquals(expectedCoefficients, result.getCoefficients());
+    }
+
+    @Test
+    public void testPolynomialMultiplicationWithShorterPolynomialLast() {
+        List<Integer> coefficients1 = Arrays.asList(4, 5, 6);
+        List<Integer> coefficients2 = Arrays.asList(1,2);
+
+        Polynomial<Integer> polynomial1 = Polynomial.from(coefficients1);
+        Polynomial<Integer> polynomial2 = Polynomial.from(coefficients2);
+
+        Polynomial<Integer> result = polynomial2.times(polynomial1, new IntegerRing());
 
         List<Integer> expectedCoefficients = Arrays.asList(4, 13, 16, 12);
         assertEquals(expectedCoefficients, result.getCoefficients());
