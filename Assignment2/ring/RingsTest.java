@@ -70,4 +70,55 @@ public class RingsTest {
 
         assertEquals(new BigInteger("24"), result);
     }
+
+    @Test
+    public void testPolynomialCreation() {
+        List<Integer> coefficients = Arrays.asList(1, 2, 3, 4);
+        Polynomial<Integer> polynomial = Polynomial.from(coefficients);
+
+        List<Integer> expectedCoefficients = Arrays.asList(1, 2, 3, 4);
+        assertEquals(expectedCoefficients, polynomial.getCoefficients());
+    }
+
+    @Test
+    public void testPolynomialAddition() {
+        List<Integer> coefficients1 = Arrays.asList(1, 2, 3);
+        List<Integer> coefficients2 = Arrays.asList(4, 5, 6);
+
+        Polynomial<Integer> polynomial1 = Polynomial.from(coefficients1);
+        Polynomial<Integer> polynomial2 = Polynomial.from(coefficients2);
+
+        Polynomial<Integer> result = polynomial1.plus(polynomial2, new IntegerRing());
+
+        List<Integer> expectedCoefficients = Arrays.asList(5, 7, 9);
+        assertEquals(expectedCoefficients, result.getCoefficients());
+    }
+
+    @Test
+    public void testPolynomialMultiplication() {
+        List<Integer> coefficients1 = Arrays.asList(1, 2);
+        List<Integer> coefficients2 = Arrays.asList(4, 5, 6);
+
+        Polynomial<Integer> polynomial1 = Polynomial.from(coefficients1);
+        Polynomial<Integer> polynomial2 = Polynomial.from(coefficients2);
+
+        Polynomial<Integer> result = polynomial1.times(polynomial2, new IntegerRing());
+
+        List<Integer> expectedCoefficients = Arrays.asList(4, 13, 16, 12);
+        assertEquals(expectedCoefficients, result.getCoefficients());
+    }
+
+    @Test
+    public void testPolynomialRing() {
+        PolynomialRing<Integer> polynomialRing = PolynomialRing.newInstance(new IntegerRing());
+
+        Polynomial<Integer> zeroPolynomial = polynomialRing.zero();
+        Polynomial<Integer> identityPolynomial = polynomialRing.identity();
+
+        List<Integer> zeroCoefficients = Arrays.asList();
+        List<Integer> identityCoefficients = Arrays.asList(1);
+
+        assertEquals(zeroCoefficients, zeroPolynomial.getCoefficients());
+        assertEquals(identityCoefficients, identityPolynomial.getCoefficients());
+    }
 }
