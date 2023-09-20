@@ -9,7 +9,7 @@ public final class PolynomialRing<T> implements Ring<Polynomial<T>> {
     private final Ring<T> baseRing;
 
     private PolynomialRing(Ring<T> baseRing) {
-        this.baseRing = Objects.requireNonNull(baseRing, "Base ring cannot be null.");
+        this.baseRing = baseRing;
     }
 
     public static <S> PolynomialRing<S> newInstance(Ring<S> baseRing) {
