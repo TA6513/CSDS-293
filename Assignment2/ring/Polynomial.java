@@ -10,7 +10,7 @@ public final class Polynomial<T> implements Iterable<T> {
     private final List<T> coefficients;
 
     private Polynomial(List<T> coefficients) {
-        this.coefficients = Objects.requireNonNull(coefficients, "Coefficients cannot be null.");
+        this.coefficients = coefficients;
     }
 
     public static final <S> Polynomial<S> from(List<S> coefficients) {
@@ -46,14 +46,23 @@ public final class Polynomial<T> implements Iterable<T> {
         List<T> resultCoefficients = new ArrayList<>(maxSize);
 
         for (int i = 0; i < maxSize; i++) {
-            T coeff1 = (i < size1) ? this.coefficients.get(i) : ring.zero();
-            T coeff2 = (i < size2) ? other.coefficients.get(i) : ring.zero();
+            T coeff1 = getCoeff1(ring, size1, i);
+            T coeff2 = getCoeff2(other, ring, size2, i);
 
             T sum = ring.sum(coeff1, coeff2);
             resultCoefficients.add(sum);
         }
 
         return new Polynomial<>(resultCoefficients);
+    }
+
+    private T getCoeff2(Polynomial<T> other, Ring<T> ring, int size2, int i) {
+        T coeff2 = (i < size2) ? other.coefficients.get(i) : ring.zero();
+        return coeff2;
+    }
+
+    private T getCoeff1(Ring<T> ring, int size1, int i) {
+        return (i < size1) ? this.coefficients.get(i) : ring.zero();
     }
 
     public Polynomial<T> times(Polynomial<T> other, Ring<T> ring) {
