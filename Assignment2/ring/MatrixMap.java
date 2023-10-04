@@ -1,7 +1,6 @@
 package ring;
 
 import java.util.*;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 // Represents a generic matrix. Provides methods for creating, accessing, and manipulating matrices of arbitrary types.
@@ -122,6 +121,54 @@ public final class MatrixMap<T> {
         return sb.toString();
     }
 
+    // Perform matrix addition
+    public MatrixMap<T> plus(MatrixMap<T> other, Ring<T> ring) {
+        // Check for inconsistent sizes
+        InconsistentSizeException.requireMatchingSize(this, other);
+
+        Map<Indexes, T> resultMatrix = new HashMap<>();
+        Indexes size = this.size;
+
+        for (int row = 0; row <= size.row(); row++) {
+            for (int col = 0; col <= size.column(); col++) {
+                Indexes index = new Indexes(row, col);
+                T sum = ring.sum(this.value(index), other.value(index));
+                resultMatrix.put(index, sum);
+            }
+        }
+
+        return new MatrixMap<>(resultMatrix, size);
+    }
+
+    // Perform matrix multiplication
+    public MatrixMap<T> times(MatrixMap<T> other, Ring<T> ring) {
+        // Check for inconsistent sizes
+        InconsistentSizeException.requireMatchingSize(this, other);
+        NonSquareException.requireDiagonal(this.size);
+
+        Map<Indexes, T> resultMatrix = new HashMap<>();
+        Indexes size = this.size;
+
+        for (int i = 0; i <= size.row(); i++) {
+            for (int j = 0; j <= size.column(); j++) {
+                Indexes currentIndex = new Indexes(i, j);
+                T sum = ring.zero();
+
+                for (int k = 0; k <= size.column(); k++) {
+                    Indexes rowIndex = new Indexes(i, k);
+                    Indexes colIndex = new Indexes(k, j);
+
+                    T product = ring.product(this.value(rowIndex), other.value(colIndex));
+                    sum = ring.sum(sum, product);
+                }
+
+                resultMatrix.put(currentIndex, sum);
+            }
+        }
+
+        return new MatrixMap<>(resultMatrix, size);
+    }
+
     // Custom exception class for invalid length with cause and length information.
     public static class InvalidLengthException extends IllegalArgumentException {
         public enum Cause {
@@ -159,49 +206,7 @@ public final class MatrixMap<T> {
         }
     }
 
-    public MatrixMap<T> plus(MatrixMap<T> other, BinaryOperator<T> plus) {
-        Indexes commonSize = InconsistentSizeException.requireMatchingSize(this, other);
-
-        Map<Indexes, T> resultMatrix = new HashMap<>();
-        for (Indexes index : Indexes.stream(commonSize)) {
-            T thisValue = value(index);
-            T otherValue = other.value(index);
-            T sum = plus.apply(thisValue, otherValue);
-            resultMatrix.put(index, sum);
-        }
-
-        return new MatrixMap<>(resultMatrix, commonSize);
-    }
-
-    public MatrixMap<T> times(MatrixMap<T> other, Ring<T> ring) {
-        // Check for inconsistent sizes
-        InconsistentSizeException.requireMatchingSize(this, other);
-    
-        Map<Indexes, T> resultMatrix = new HashMap<>();
-        Indexes size = this.size;
-    
-        for (int i = 0; i <= size.row(); i++) {
-            for (int j = 0; j <= size.column(); j++) {
-                Indexes currentIndex = new Indexes(i, j);
-                T sum = ring.zero();
-    
-                for (int k = 0; k <= size.column(); k++) {
-                    Indexes rowIndex = new Indexes(i, k);
-                    Indexes colIndex = new Indexes(k, j);
-    
-                    T product = ring.product(this.value(rowIndex), other.value(colIndex));
-                    sum = ring.sum(sum, product);
-                }
-    
-                resultMatrix.put(currentIndex, sum);
-            }
-        }
-    
-        return new MatrixMap<>(resultMatrix, size);
-    }
-    
-
-    public class InconsistentSizeException extends IllegalArgumentException {
+    public static class InconsistentSizeException extends IllegalArgumentException {
         private final Indexes thisIndexes;
         private final Indexes otherIndexes;
 
@@ -233,7 +238,7 @@ public final class MatrixMap<T> {
 
     }
 
-    public class NonSquareException extends IllegalStateException {
+    public static class NonSquareException extends IllegalStateException {
         private final Indexes indexes;
 
         public NonSquareException(Indexes indexes) {
@@ -242,6 +247,14 @@ public final class MatrixMap<T> {
         }
 
         public Indexes getIndexes() {
+            return indexes;
+        }
+
+        public static Indexes requireDiagonal(Indexes indexes) {
+            if (indexes.row() != indexes.column()) {
+                throw new IllegalStateException("Indexes must be on the diagonal",
+                        new NonSquareException(indexes));
+            }
             return indexes;
         }
     }

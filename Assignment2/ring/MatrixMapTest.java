@@ -3,6 +3,8 @@ package ring;
 import static org.junit.Assert.*;
 
 import java.math.BigInteger;
+import java.util.List;
+import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -72,11 +74,12 @@ public class MatrixMapTest {
 
     @Test
     public void testBigIntegerMatrix() {
+        // Test MatrixMap with BigInteger
         MatrixMap<BigInteger> matrix1 = MatrixMap.constant(2, BigInteger.ONE);
         MatrixMap<BigInteger> matrix2 = MatrixMap.constant(2, BigInteger.TEN);
 
         // Matrix addition
-        MatrixMap<BigInteger> sumMatrix = matrix1.plus(matrix2, BigInteger::add);
+        MatrixMap<BigInteger> sumMatrix = matrix1.plus(matrix2, new BigIntegerRing());
         assertEquals(BigInteger.valueOf(11), sumMatrix.value(0, 0));
         assertEquals(BigInteger.valueOf(11), sumMatrix.value(0, 1));
         assertEquals(BigInteger.valueOf(11), sumMatrix.value(1, 0));
@@ -85,33 +88,53 @@ public class MatrixMapTest {
         // Matrix multiplication
         MatrixMap<BigInteger> identityMatrix = MatrixMap.identity(2, BigInteger.ZERO, BigInteger.ONE);
         MatrixMap<BigInteger> productMatrix = sumMatrix.times(identityMatrix, new BigIntegerRing());
-        assertEquals(BigInteger.valueOf(22), productMatrix.value(0, 0));
-        assertEquals(BigInteger.valueOf(22), productMatrix.value(0, 1));
-        assertEquals(BigInteger.valueOf(22), productMatrix.value(1, 0));
-        assertEquals(BigInteger.valueOf(22), productMatrix.value(1, 1));
+        assertEquals(BigInteger.valueOf(11), productMatrix.value(0, 0));
+        assertEquals(BigInteger.valueOf(11), productMatrix.value(0, 1));
+        assertEquals(BigInteger.valueOf(11), productMatrix.value(1, 0));
+        assertEquals(BigInteger.valueOf(11), productMatrix.value(1, 1));
     }
 
     @Test
     public void testPolynomialMatrix() {
-        Ring<Polynomial<BigInteger>> polynomialRing = new PolynomialRing<>(new BigIntegerRing());
-        MatrixMap<Polynomial<BigInteger>> polyMatrix1 = MatrixMap.constant(2, Polynomial.constant(BigInteger.ONE));
-        MatrixMap<Polynomial<BigInteger>> polyMatrix2 = MatrixMap.constant(2, Polynomial.constant(BigInteger.TEN));
+        // Create a PolynomialRing over BigInteger
+        Ring<Polynomial<BigInteger>> polynomialRing = PolynomialRing.newInstance(new BigIntegerRing());
+        Ring<BigInteger> bigIntegerRing = new BigIntegerRing();
+
+        // Create two polynomials
+        Polynomial<BigInteger> poly1 = Polynomial.from(List.of(BigInteger.ONE, BigInteger.ZERO, BigInteger.ONE)); // x^2
+                                                                                                                  // + 1
+        Polynomial<BigInteger> poly2 = Polynomial.from(List.of(BigInteger.TEN, BigInteger.ONE)); // 10x + 10
+
+        // Create two 2x2 identity matrices with Polynomial elements
+        MatrixMap<Polynomial<BigInteger>> polyMatrix1 = MatrixMap.identity(2, poly1, polynomialRing.zero());
+        MatrixMap<Polynomial<BigInteger>> polyMatrix2 = MatrixMap.identity(2, poly2, polynomialRing.zero());
+
+        // Fill the matrices with polynomials
+        polyMatrix1 = MatrixMap.instance(polyMatrix1.size(), indexes -> poly1);
+        polyMatrix2 = MatrixMap.instance(polyMatrix2.size(), indexes -> poly2);
 
         // Matrix addition
-        MatrixMap<Polynomial<BigInteger>> polySumMatrix = polyMatrix1.plus(polyMatrix2, polynomialRing::sum);
-        assertEquals(Polynomial.constant(BigInteger.valueOf(11)), polySumMatrix.value(0, 0));
-        assertEquals(Polynomial.constant(BigInteger.valueOf(11)), polySumMatrix.value(0, 1));
-        assertEquals(Polynomial.constant(BigInteger.valueOf(11)), polySumMatrix.value(1, 0));
-        assertEquals(Polynomial.constant(BigInteger.valueOf(11)), polySumMatrix.value(1, 1));
+        MatrixMap<Polynomial<BigInteger>> polySumMatrix = polyMatrix1.plus(polyMatrix2, polynomialRing);
 
         // Matrix multiplication
-        MatrixMap<Polynomial<BigInteger>> polyIdentityMatrix = MatrixMap.identity(2,
-                Polynomial.constant(BigInteger.ZERO), Polynomial.constant(BigInteger.ONE));
-        MatrixMap<Polynomial<BigInteger>> polyProductMatrix = polySumMatrix.times(polyIdentityMatrix, polynomialRing);
-        assertEquals(Polynomial.constant(BigInteger.valueOf(121)), polyProductMatrix.value(0, 0));
-        assertEquals(Polynomial.constant(BigInteger.valueOf(121)), polyProductMatrix.value(0, 1));
-        assertEquals(Polynomial.constant(BigInteger.valueOf(121)), polyProductMatrix.value(1, 0));
-        assertEquals(Polynomial.constant(BigInteger.valueOf(121)), polyProductMatrix.value(1, 1));
-    }
+        MatrixMap<Polynomial<BigInteger>> polyProductMatrix = polyMatrix1.times(polyMatrix2, polynomialRing);
 
+        // Expected result
+        Polynomial<BigInteger> addResult = poly1.plus(poly2, bigIntegerRing);
+
+        for (int row = 0; row <= polySumMatrix.size().row(); row++) {
+            for (int col = 0; col <= polySumMatrix.size().column(); col++) {
+                assertEquals(addResult, polySumMatrix.value(row, col));
+            }
+        }
+
+        // Expected result
+        Polynomial<BigInteger> multResult = poly1.times(poly2, bigIntegerRing);
+
+        for (int row = 0; row <= polyProductMatrix.size().row(); row++) {
+            for (int col = 0; col <= polyProductMatrix.size().column(); col++) {
+                assertEquals(multResult, polyProductMatrix.value(row, col));
+            }
+        }
+    }
 }
