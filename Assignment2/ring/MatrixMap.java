@@ -33,9 +33,8 @@ public final class MatrixMap<T> {
     // Creates a matrix with specified dimensions and initializes values using a
     // valueMapper function.
     public static <S> MatrixMap<S> instance(int rows, int columns, Function<Indexes, S> valueMapper) {
-        if (rows <= 0 || columns <= 0) {
-            throw new IllegalArgumentException("Number of rows and columns must be greater than zero.");
-        }
+        InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, rows);
+        InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.COLUMN, columns);
 
         return new MatrixMap<>(createMatrix(rows, columns, valueMapper), new Indexes(rows - 1, columns - 1));
     }
@@ -49,9 +48,7 @@ public final class MatrixMap<T> {
     // Creates a constant matrix of a given size with all elements initialized to a
     // specific value.
     public static <S> MatrixMap<S> constant(int size, S value) {
-        if (size <= 0) {
-            throw new IllegalArgumentException("Size must be greater than zero.");
-        }
+        InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, size);
 
         return new MatrixMap<>(createMatrix(size, size, index -> value), new Indexes(size - 1, size - 1));
     }
@@ -59,9 +56,7 @@ public final class MatrixMap<T> {
     // Creates an identity matrix of a given size with specified zero and identity
     // values.
     public static <S> MatrixMap<S> identity(int size, S zero, S identity) {
-        if (size <= 0) {
-            throw new IllegalArgumentException("Size must be greater than zero.");
-        }
+        InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, size);
 
         return new MatrixMap<>(createMatrix(size, size, index -> (index.areDiagonal()) ? identity : zero),
                 new Indexes(size - 1, size - 1));
@@ -72,9 +67,8 @@ public final class MatrixMap<T> {
         int rows = matrixArray.length;
         int columns = (rows > 0) ? matrixArray[0].length : 0;
 
-        if (rows <= 0 || columns <= 0) {
-            throw new IllegalArgumentException("Number of rows and columns must be greater than zero.");
-        }
+        InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, rows);
+        InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.COLUMN, columns);
 
         Map<Indexes, S> matrix = new HashMap<>();
         Indexes size = new Indexes(rows - 1, columns - 1);
@@ -148,6 +142,14 @@ public final class MatrixMap<T> {
         }
 
         public int getLength() {
+            return length;
+        }
+
+        public static int requireNonEmpty(Cause cause, int length) {
+            if (length <= 0) {
+                throw new IllegalArgumentException("Size must be greater than zero.",
+                        new InvalidLengthException(cause, length));
+            }
             return length;
         }
 
