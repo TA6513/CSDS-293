@@ -1,6 +1,7 @@
 package ring;
 
 import java.util.*;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 // Represents a generic matrix. Provides methods for creating, accessing, and manipulating matrices of arbitrary types.
@@ -137,7 +138,7 @@ public final class MatrixMap<T> {
         private final int length;
 
         public InvalidLengthException(Cause cause, int length) {
-            super();
+            super("Length is invalid");
             this.cause = cause;
             this.length = length;
         }
@@ -155,4 +156,92 @@ public final class MatrixMap<T> {
             return "Invalid length for " + cause.toString() + ": " + length;
         }
     }
+
+    public MatrixMap<T> plus(MatrixMap<T> other, BinaryOperator<T> plus) {
+        Indexes commonSize = InconsistentSizeException.requireMatchingSize(this, other);
+
+        Map<Indexes, T> resultMatrix = new HashMap<>();
+        for (Indexes index : Indexes.stream(commonSize)) {
+            T thisValue = value(index);
+            T otherValue = other.value(index);
+            T sum = plus.apply(thisValue, otherValue);
+            resultMatrix.put(index, sum);
+        }
+
+        return new MatrixMap<>(resultMatrix, commonSize);
+    }
+
+    public MatrixMap<T> times(MatrixMap<T> other, Ring<T> ring) {
+        // Check for inconsistent sizes
+        InconsistentSizeException.requireMatchingSize(this, other);
+    
+        Map<Indexes, T> resultMatrix = new HashMap<>();
+        Indexes size = this.size;
+    
+        for (int i = 0; i <= size.row(); i++) {
+            for (int j = 0; j <= size.column(); j++) {
+                Indexes currentIndex = new Indexes(i, j);
+                T sum = ring.zero();
+    
+                for (int k = 0; k <= size.column(); k++) {
+                    Indexes rowIndex = new Indexes(i, k);
+                    Indexes colIndex = new Indexes(k, j);
+    
+                    T product = ring.product(this.value(rowIndex), other.value(colIndex));
+                    sum = ring.sum(sum, product);
+                }
+    
+                resultMatrix.put(currentIndex, sum);
+            }
+        }
+    
+        return new MatrixMap<>(resultMatrix, size);
+    }
+    
+
+    public class InconsistentSizeException extends IllegalArgumentException {
+        private final Indexes thisIndexes;
+        private final Indexes otherIndexes;
+
+        public InconsistentSizeException(Indexes thisIndexes, Indexes otherIndexes) {
+            super("Matrix sizes do not match");
+            this.thisIndexes = thisIndexes;
+            this.otherIndexes = otherIndexes;
+        }
+
+        public Indexes getThisIndexes() {
+            return thisIndexes;
+        }
+
+        public Indexes getOtherIndexes() {
+            return otherIndexes;
+        }
+
+        public static <T> Indexes requireMatchingSize(MatrixMap<T> thisMatrix, MatrixMap<T> otherMatrix) {
+            Indexes thisSize = thisMatrix.size();
+            Indexes otherSize = otherMatrix.size();
+
+            if (!thisSize.equals(otherSize)) {
+                throw new IllegalArgumentException("Matrix sizes do not match",
+                        new InconsistentSizeException(thisSize, otherSize));
+            }
+
+            return thisSize;
+        }
+
+    }
+
+    public class NonSquareException extends IllegalStateException {
+        private final Indexes indexes;
+
+        public NonSquareException(Indexes indexes) {
+            super("Matrix is not square");
+            this.indexes = indexes;
+        }
+
+        public Indexes getIndexes() {
+            return indexes;
+        }
+    }
+
 }
