@@ -137,7 +137,7 @@ public final class MatrixMap<T> {
             }
         }
 
-        return new MatrixMap<>(resultMatrix, size);
+        return MatrixMap.instance(size, resultMatrix::get);
     }
 
     // Perform matrix multiplication
