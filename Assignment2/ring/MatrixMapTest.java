@@ -4,7 +4,6 @@ import static org.junit.Assert.*;
 
 import java.math.BigInteger;
 import java.util.List;
-import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
