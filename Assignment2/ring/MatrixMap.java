@@ -1,22 +1,27 @@
 package ring;
 
-import java.util.*;
+import roamingcollection.*;
+
+import java.util.Objects;
 import java.util.function.Function;
 
 // Represents a generic matrix. Provides methods for creating, accessing, and manipulating matrices of arbitrary types.
 public final class MatrixMap<T> {
-    private final Map<Indexes, T> matrix;
+    private final RoamingMap<Indexes, T> matrix;
     private final Indexes size;
 
-    private MatrixMap(Map<Indexes, T> matrix, Indexes size) {
+    private MatrixMap(RoamingMap<Indexes, T> matrix, Indexes size) {
         this.matrix = matrix;
         this.size = size;
     }
 
     // Creates a matrix using and initializes its elements based on the provided
     // valueMapper function.
-    private static <S> Map<Indexes, S> createMatrix(int rows, int columns, Function<Indexes, S> valueMapper) {
-        Map<Indexes, S> matrix = new HashMap<>();
+    private static <S> RoamingMap<Indexes, S> createMatrix(int rows, int columns, Function<Indexes, S> valueMapper) {
+        InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, rows);
+        InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.COLUMN, columns);
+        
+        RoamingMap<Indexes, S> matrix = new RoamingMap<>();
         Indexes size = new Indexes(rows - 1, columns - 1);
 
         for (int row = 0; row <= size.row(); row++) {
@@ -41,6 +46,9 @@ public final class MatrixMap<T> {
     // Creates a matrix with specified dimensions and initializes values using a
     // valueMapper function.
     public static <S> MatrixMap<S> instance(Indexes size, Function<Indexes, S> valueMapper) {
+        Objects.requireNonNull(size);
+        Objects.requireNonNull(valueMapper);
+
         return instance(size.row() + 1, size.column() + 1, valueMapper);
     }
 
@@ -48,6 +56,7 @@ public final class MatrixMap<T> {
     // specific value.
     public static <S> MatrixMap<S> constant(int size, S value) {
         InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, size);
+        Objects.requireNonNull(value);
 
         return new MatrixMap<>(createMatrix(size, size, index -> value), new Indexes(size - 1, size - 1));
     }
@@ -63,13 +72,15 @@ public final class MatrixMap<T> {
 
     // Creates a matrix from a two-dimensional array of values.
     public static <S> MatrixMap<S> from(S[][] matrixArray) {
+        Objects.requireNonNull(matrixArray);
+        
         int rows = matrixArray.length;
         int columns = (rows > 0) ? matrixArray[0].length : 0;
 
         InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, rows);
         InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.COLUMN, columns);
 
-        Map<Indexes, S> matrix = new HashMap<>();
+        RoamingMap<Indexes, S> matrix = new RoamingMap<>();
         Indexes size = new Indexes(rows - 1, columns - 1);
 
         for (int row = 0; row <= size.row(); row++) {
@@ -91,16 +102,31 @@ public final class MatrixMap<T> {
 
     // Returns the value at the specified indexes in the matrix.
     public T value(Indexes indexes) {
+        Objects.requireNonNull(indexes);
+
         return matrix.getOrDefault(indexes, null);
     }
 
     // Returns the value at the specified row and column in the matrix.
     public T value(int row, int column) {
+        assert row > 0;
+        assert column > 0;
+
+        if(row < 0) {
+            row = 0;
+        }
+        if(column < 0) {
+            column = 0;
+        }
+
         return value(new Indexes(row, column));
     }
 
     // Returns the value at the specified indexes in a given matrix.
     public static <S> S value(MatrixMap<S> matrix, Indexes indexes) {
+        Objects.requireNonNull(indexes);
+        Objects.requireNonNull(matrix);
+
         return matrix.value(indexes);
     }
 
@@ -126,7 +152,7 @@ public final class MatrixMap<T> {
         // Check for inconsistent sizes
         InconsistentSizeException.requireMatchingSize(this, other);
 
-        Map<Indexes, T> resultMatrix = new HashMap<>();
+        RoamingMap<Indexes, T> resultMatrix = new RoamingMap<>();
         Indexes size = this.size;
 
         for (int row = 0; row <= size.row(); row++) {
@@ -146,7 +172,7 @@ public final class MatrixMap<T> {
         InconsistentSizeException.requireMatchingSize(this, other);
         NonSquareException.requireDiagonal(this.size);
 
-        Map<Indexes, T> resultMatrix = new HashMap<>();
+        RoamingMap<Indexes, T> resultMatrix = new RoamingMap<>();
         Indexes size = this.size;
 
         for (int i = 0; i <= size.row(); i++) {
