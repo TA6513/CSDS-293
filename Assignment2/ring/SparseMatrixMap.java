@@ -4,43 +4,47 @@ import java.util.*;
 import java.util.function.Function;
 
 // Represents a generic matrix. Provides methods for creating, accessing, and manipulating matrices of arbitrary types.
-public final class MatrixMap<S> implements Matrix<S> {
+public final class SparseMatrixMap<S> implements Matrix<S> {
     private final Map<Indexes, S> matrix;
     private final Indexes size;
 
-    MatrixMap(Map<Indexes, S> matrix, Indexes size) {
+    public SparseMatrixMap(Map<Indexes, S> matrix, Indexes size) {
         this.matrix = matrix;
         this.size = size;
     }
 
-    public static <S> Map<Indexes, S> createMatrix(int rows, int columns, Function<Indexes, S> valueMapper) {
-        Map<Indexes, S> matrix = new HashMap<>();
+    public static <S> Map<Indexes, S> createSparseMatrix(int rows, int columns, Function<Indexes, S> valueMapper) {
+        Map<Indexes, S> sparseMatrix = new HashMap<>();
         Indexes size = new Indexes(rows - 1, columns - 1);
 
         for (int row = 0; row <= size.row(); row++) {
             for (int col = 0; col <= size.column(); col++) {
                 Indexes index = new Indexes(row, col);
-                matrix.put(index, valueMapper.apply(index));
+                S value = valueMapper.apply(index);
+                if (!value.equals(0)) {
+                    sparseMatrix.put(index, value);
+                }
             }
         }
 
-        return matrix;
+        return sparseMatrix;
     }
 
     // Creates a matrix with specified dimensions and initializes values using a
     // valueMapper function.
     @Override
-    public <S> MatrixMap<S> instance(int rows, int columns, Function<Indexes, S> valueMapper) {
+    public <S> SparseMatrixMap<S> instance(int rows, int columns, Function<Indexes, S> valueMapper) {
         InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, rows);
         InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.COLUMN, columns);
 
-        return new MatrixMap<>(createMatrix(rows, columns, valueMapper), new Indexes(rows - 1, columns - 1));
+        return new SparseMatrixMap<>(createSparseMatrix(rows, columns, valueMapper),
+                new Indexes(rows - 1, columns - 1));
     }
 
     // Creates a matrix with specified dimensions and initializes values using a
     // valueMapper function.
     @Override
-    public <S> MatrixMap<S> instance(Indexes size, Function<Indexes, S> valueMapper) {
+    public <S> SparseMatrixMap<S> instance(Indexes size, Function<Indexes, S> valueMapper) {
         Objects.requireNonNull(size);
         Objects.requireNonNull(valueMapper);
 
@@ -50,26 +54,26 @@ public final class MatrixMap<S> implements Matrix<S> {
     // Creates a constant matrix of a given size with all elements initialized to a
     // specific value.
     @Override
-    public <S> MatrixMap<S> constant(int size, S value) {
+    public <S> SparseMatrixMap<S> constant(int size, S value) {
         InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, size);
         Objects.requireNonNull(value);
 
-        return new MatrixMap<>(createMatrix(size, size, index -> value), new Indexes(size - 1, size - 1));
+        return new SparseMatrixMap<>(createSparseMatrix(size, size, index -> value), new Indexes(size - 1, size - 1));
     }
 
     // Creates an identity matrix of a given size with specified zero and identity
     // values.
     @Override
-    public <S> MatrixMap<S> identity(int size, S zero, S identity) {
+    public <S> SparseMatrixMap<S> identity(int size, S zero, S identity) {
         InvalidLengthException.requireNonEmpty(InvalidLengthException.Cause.ROW, size);
 
-        return new MatrixMap<>(createMatrix(size, size, index -> (index.areDiagonal()) ? identity : zero),
+        return new SparseMatrixMap<>(createSparseMatrix(size, size, index -> (index.areDiagonal()) ? identity : zero),
                 new Indexes(size - 1, size - 1));
     }
 
     // Creates a matrix from a two-dimensional array of values.
     @Override
-    public <S> MatrixMap<S> from(S[][] matrixArray) {
+    public <S> SparseMatrixMap<S> from(S[][] matrixArray) {
         Objects.requireNonNull(matrixArray);
 
         int rows = matrixArray.length;
@@ -90,7 +94,7 @@ public final class MatrixMap<S> implements Matrix<S> {
             }
         }
 
-        return new MatrixMap<>(matrix, size);
+        return new SparseMatrixMap<>(matrix, size);
     }
 
     // Returns the size of the matrix.
@@ -151,27 +155,28 @@ public final class MatrixMap<S> implements Matrix<S> {
 
     // Perform matrix addition
     @Override
-    public MatrixMap<S> plus(Matrix<S> other, Ring<S> ring) {
-        // Check for inconsistent sizes
+    public SparseMatrixMap<S> plus(Matrix<S> other, Ring<S> ring) {
         InconsistentSizeException.requireMatchingSize(this, other);
 
         Map<Indexes, S> resultMatrix = new HashMap<>();
-        Indexes size = this.size;
 
-        for (int row = 0; row <= size.row(); row++) {
-            for (int col = 0; col <= size.column(); col++) {
-                Indexes index = new Indexes(row, col);
-                S sum = ring.sum(this.value(index), other.value(index));
-                resultMatrix.put(index, sum);
+        for (Indexes index : this.matrix.keySet()) {
+            S sum;
+            S thisValue = this.value(index); // Get the value from this.matrix
+            S otherValue = other.value(index);
+            if (thisValue == null || otherValue == ring.zero() || otherValue == null) {
+                sum = null;
             }
+            sum = ring.sum(thisValue, otherValue);
+            resultMatrix.put(index, sum);
         }
 
-        return this.instance(size, resultMatrix::get);
+        return new SparseMatrixMap<>(resultMatrix, size);
     }
 
     // Perform matrix multiplication
     @Override
-    public MatrixMap<S> times(Matrix<S> other, Ring<S> ring) {
+    public SparseMatrixMap<S> times(Matrix<S> other, Ring<S> ring) {
         // Check for inconsistent sizes
         InconsistentSizeException.requireMatchingSize(this, other);
         NonSquareException.requireDiagonal(this.size);
@@ -187,21 +192,31 @@ public final class MatrixMap<S> implements Matrix<S> {
                 for (int k = 0; k <= size.column(); k++) {
                     Indexes rowIndex = new Indexes(i, k);
                     Indexes colIndex = new Indexes(k, j);
-
-                    S product = ring.product(this.value(rowIndex), other.value(colIndex));
+                    S product;
+                    if(this.value(rowIndex) == null || other.value(colIndex) == null || other.value(colIndex) == ring.zero()) {
+                        product = null;
+                    }
+                    else {
+                        product = ring.product(this.value(rowIndex), other.value(colIndex));
+                    }
                     sum = ring.sum(sum, product);
                 }
-
-                resultMatrix.put(currentIndex, sum);
+                
+                if(sum == ring.zero()) {
+                    resultMatrix.put(currentIndex, null);
+                }
+                else {
+                    resultMatrix.put(currentIndex, sum);
+                }
             }
         }
 
-        return new MatrixMap<>(resultMatrix, size);
+        return new SparseMatrixMap<>(resultMatrix, size);
     }
 
-    public SparseMatrixMap<S> makeSparse() {
-        Map<Indexes, S> matrix = SparseMatrixMap.createSparseMatrix(size.row() + 1, size.column() + 1, this::value);
-        return new SparseMatrixMap<S>(matrix, size);
+    public MatrixMap<S> makeNonSparse() {
+        Map<Indexes, S> matrix = MatrixMap.createMatrix(size.row() + 1, size.column() + 1, this::value);
+        return new MatrixMap<S>(matrix, size);
     }
 
     // Custom exception class for invalid length with cause and length information.

@@ -16,15 +16,27 @@ public class DoubleRing implements Ring<Double> {
 
     @Override
     public Double sum(Double x, Double y) {
-        Objects.requireNonNull(x, "input value cannot be null.");
-        Objects.requireNonNull(y, "input value cannot be null.");   
-        return x + y;
+        if(x == null && y != null) {
+            return y;
+        }
+        else if(y == null && x != null) {
+            return x;
+        }
+        else if(x == null && y == null) {
+            return 0.0;
+        }
+        else {
+            return x + y;
+        }
     }
 
     @Override
     public Double product(Double x, Double y) {
-        Objects.requireNonNull(x, "input value cannot be null.");
-        Objects.requireNonNull(y, "input value cannot be null.");   
-        return x * y;
+        if(x == null || y == null) {
+            return 0.0;
+        }
+        else {
+            return x * y;
+        }
     }
 }

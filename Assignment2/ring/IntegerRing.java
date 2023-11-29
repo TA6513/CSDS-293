@@ -16,15 +16,27 @@ public class IntegerRing implements Ring<Integer> {
 
     @Override
     public Integer sum(Integer x, Integer y) {
-        Objects.requireNonNull(x, "input value cannot be null.");
-        Objects.requireNonNull(y, "input value cannot be null.");   
-        return x + y;
+        if(x == null && y != null) {
+            return y;
+        }
+        else if(y == null && x != null) {
+            return x;
+        }
+        else if(x == null && y == null) {
+            return 0;
+        }
+        else {
+            return x + y;
+        }
     }
 
     @Override
-    public Integer product(Integer x, Integer y) {
-        Objects.requireNonNull(x, "input value cannot be null.");
-        Objects.requireNonNull(y, "input value cannot be null.");   
-        return x * y;
+    public Integer product(Integer x, Integer y) { 
+        if(x == null || y == null) {
+            return 0;
+        }
+        else {
+            return x * y;
+        }
     }
 }

@@ -16,15 +16,27 @@ public class BigIntegerRing implements Ring<BigInteger> {
 
     @Override
     public BigInteger sum(BigInteger x, BigInteger y) {
-        Objects.requireNonNull(x, "input value cannot be null.");
-        Objects.requireNonNull(y, "input value cannot be null.");   
-        return x.add(y);
+        if(x == null && y != null) {
+            return y;
+        }
+        else if(y == null && x != null) {
+            return x;
+        }
+        else if(x == null && y == null) {
+            return BigInteger.ZERO;
+        }
+        else {
+            return x.add(y);
+        }
     }
 
     @Override
     public BigInteger product(BigInteger x, BigInteger y) {
-        Objects.requireNonNull(x, "input value cannot be null.");
-        Objects.requireNonNull(y, "input value cannot be null.");  
-        return x.multiply(y);
+        if(x == null || y == null) {
+            return BigInteger.ZERO;
+        }
+        else {
+            return x.multiply(y);
+        }
     }
 }
